@@ -14,12 +14,10 @@ namespace eval configurator {
 
 proc configurator::parseConfig {args} {
   set options {
-    {unsetvars "Unset any variables"}
     {hidecmds "Hide all commands"}
     {aliases.arg {} "Map aliases between slave interpreter and master"}
     {exposecmds.arg {}
                     "Expose the specified commands to the slave interpreter"}
-    {file.arg {} "Load configuration from file"}
   }
   set thisCmdName [lindex [info level 0] 0]
   set usage ": $thisCmdName \[options] script\noptions:"
@@ -28,9 +26,7 @@ proc configurator::parseConfig {args} {
   set safeInterp [interp create -safe]
   try {
     set config [dict create]
-    if {$params(unsetvars)} {
-       $safeInterp eval {unset {*}[info vars]}
-     }
+     $safeInterp eval {unset {*}[info vars]}
 
     if {$params(hidecmds)} {
       foreach command [$safeInterp eval {info commands}] {
