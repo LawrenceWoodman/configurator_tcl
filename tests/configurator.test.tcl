@@ -138,5 +138,16 @@ test parseConfig-3 {Ensure non hidden commands can be run} -setup {
   parseConfig $commandMaps $script
 } -result [dict create title "The answer to 2 + 2 is 4"]
 
+test parseConfig-4 {Ensure correct error when invalid command run} -setup {
+  set script {
+    bob 7
+  }
+
+  set commandMaps [list \
+    [makeSetConfigCmd title 1 "title"]]
+
+} -body {
+  parseConfig $commandMaps $script
+} -result {invalid command name "bob"} -returnCodes {error}
 
 cleanupTests

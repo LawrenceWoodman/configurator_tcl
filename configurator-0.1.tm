@@ -5,7 +5,7 @@
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
 
-package require Tcl 8.6
+package require Tcl 8.5
 package require cmdline
 
 namespace eval configurator {
@@ -23,7 +23,8 @@ proc configurator::parseConfig {args} {
   array set params [::cmdline::getoptions args $options $usage]
 
   set safeInterp [interp create -safe]
-  try {
+
+  catch {
     set config [dict create]
      $safeInterp eval {unset {*}[info vars]}
 
@@ -45,10 +46,11 @@ proc configurator::parseConfig {args} {
     }
 
     $safeInterp eval $script
-  } finally {
-    interp delete $safeInterp
-  }
-  return $config
+    return $config
+  } returnResult returnOptions
+
+  interp delete $safeInterp
+  return -options $returnOptions $returnResult
 }
 
 proc configurator::SetConfig {key numValues argsUsage args} {
