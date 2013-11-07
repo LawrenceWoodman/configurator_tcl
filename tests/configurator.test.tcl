@@ -29,7 +29,10 @@ accept many arguments if requested} -setup {
   set cmd [lindex $alias 1]
 } -body {
   {*}$cmd 1 5 4 hello
-} -result [dict create options {1 5 4 hello}]
+} -result [dict create options {1 5 4 hello}] \
+-cleanup {
+  set config {}
+}
 
 test makeSetConfigCmd-4 {Returns a list referencing a function that will \
 fail if many arguments requested but none given} -setup {
@@ -43,10 +46,7 @@ fail if many arguments requested but none given} -setup {
 
 test makeSectionCmd-1 {Returns a list referencing a function that will \
 fail with a sensible error message if wrong number of arguments given} -setup {
-  set deviceSectionAliases [list \
-    [makeSetConfigCmd write_cache 1 "1|0"]                  \
-    [makeSetConfigCmd dma 1 "1|0"]                          \
-    [makeSetConfigCmd options many "option ?option ..?"]]
+  set deviceSectionAliases [list [makeSetConfigCmd dma 1 "1|0"]]
   set alias [makeSectionCmd device $deviceSectionAliases \
                                    "deviceName deviceDetails"]
   set cmd [lindex $alias 1]
@@ -54,6 +54,25 @@ fail with a sensible error message if wrong number of arguments given} -setup {
   {*}$cmd
 } -result {wrong # args: should be "device deviceName deviceDetails"} \
   -returnCodes {error}
+
+test makeSectionCmd-2 {Returns a list referencing a function that will \
+create a nested dictionary and parse a script} -setup {
+  set deviceSectionAliases [list             \
+    [makeSetConfigCmd write_cache 1 "1|0"]   \
+    [makeSetConfigCmd dma 1 "1|0"]]
+  set alias [makeSectionCmd device $deviceSectionAliases \
+                                   "deviceName deviceDetails"]
+  set deviceScript {
+    write_cache 1
+    dma 1
+  }
+  set cmd [lindex $alias 1]
+} -body {
+  {*}$cmd /dev/hda $deviceScript
+} -result [dict create /dev/hda [dict create write_cache 1 dma 1]] \
+-cleanup {
+  set config {}
+}
 
 
 test parseConfig-1 {Returns correct dictionary for script passed} -setup {
