@@ -15,12 +15,11 @@ namespace eval configurator {
 proc configurator::parseConfig {args} {
   set options {
     {hidecmds "Hide all commands"}
-    {aliases.arg {} "Map aliases between slave interpreter and master"}
     {exposecmds.arg {}
                     "Expose the specified commands to the slave interpreter"}
   }
   set thisCmdName [lindex [info level 0] 0]
-  set usage ": $thisCmdName \[options] script\noptions:"
+  set usage ": $thisCmdName \[options] commands script\noptions:"
   array set params [::cmdline::getoptions args $options $usage]
 
   set safeInterp [interp create -safe]
@@ -38,12 +37,13 @@ proc configurator::parseConfig {args} {
       $safeInterp expose $exposeCmd
     }
 
-    foreach alias $params(aliases) {
-      lassign $alias slaveCmd masterCmd
+    lassign $args commandMaps script
+
+    foreach commandMap $commandMaps {
+      lassign $commandMap slaveCmd masterCmd
       $safeInterp alias $slaveCmd {*}$masterCmd
     }
 
-    lassign $args script
     $safeInterp eval $script
   } finally {
     interp delete $safeInterp
@@ -66,22 +66,22 @@ proc configurator::SetConfig {key numValues argsUsage args} {
   }
 }
 
-proc configurator::Section {cmdName aliases argsUsage args} {
+proc configurator::Section {cmdName commandMaps argsUsage args} {
   if {[llength $args] != 2} {
     Usage "$cmdName $argsUsage"
   }
   lassign $args sectionName script
   upvar config config
   dict set config $sectionName [
-    configurator::parseConfig -aliases $aliases $script]
+    configurator::parseConfig $commandMaps $script]
 }
 
 proc configurator::makeSetConfigCmd {key numValues argsUsage} {
   list $key [list configurator::SetConfig $key $numValues $argsUsage]
 }
 
-proc configurator::makeSectionCmd {cmdName aliases argsUsage} {
-  list $cmdName [list configurator::Section $cmdName $aliases $argsUsage]
+proc configurator::makeSectionCmd {cmdName commandMaps argsUsage} {
+  list $cmdName [list configurator::Section $cmdName $commandMaps $argsUsage]
 }
 
 proc configurator::Usage {msg} {

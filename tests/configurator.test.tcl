@@ -11,22 +11,22 @@ namespace import configurator::*
 
 
 test makeSetConfigCmd-1 {Returns a list where the first element is the key} {
-  set alias [makeSetConfigCmd device 1 "1|0"]
-  lindex $alias 0
+  set commandMap [makeSetConfigCmd device 1 "1|0"]
+  lindex $commandMap 0
 } device
 
 test makeSetConfigCmd-2 {Returns a list referencing a function that will fail \
 if the wrong number of arguments passed to it} -setup {
-  set alias [makeSetConfigCmd device 1 "1|0"]
-  set cmd [lindex $alias 1]
+  set commandMap [makeSetConfigCmd device 1 "1|0"]
+  set cmd [lindex $commandMap 1]
 } -body {
   {*}$cmd
 } -result {wrong # args: should be "device 1|0"} -returnCodes {error}
 
 test makeSetConfigCmd-3 {Returns a list referencing a function that will \
 accept many arguments if requested} -setup {
-  set alias [makeSetConfigCmd options many "option ?option ..?"]
-  set cmd [lindex $alias 1]
+  set commandMap [makeSetConfigCmd options many "option ?option ..?"]
+  set cmd [lindex $commandMap 1]
 } -body {
   {*}$cmd 1 5 4 hello
 } -result [dict create options {1 5 4 hello}] \
@@ -36,8 +36,8 @@ accept many arguments if requested} -setup {
 
 test makeSetConfigCmd-4 {Returns a list referencing a function that will \
 fail if many arguments requested but none given} -setup {
-  set alias [makeSetConfigCmd options many "option ?option ..?"]
-  set cmd [lindex $alias 1]
+  set commandMap [makeSetConfigCmd options many "option ?option ..?"]
+  set cmd [lindex $commandMap 1]
 } -body {
   {*}$cmd
 } -result {wrong # args: should be "options option ?option ..?"} \
@@ -47,9 +47,9 @@ fail if many arguments requested but none given} -setup {
 test makeSectionCmd-1 {Returns a list referencing a function that will \
 fail with a sensible error message if wrong number of arguments given} -setup {
   set deviceSectionAliases [list [makeSetConfigCmd dma 1 "1|0"]]
-  set alias [makeSectionCmd device $deviceSectionAliases \
-                                   "deviceName deviceDetails"]
-  set cmd [lindex $alias 1]
+  set commandMap [makeSectionCmd device $deviceSectionAliases \
+                                 "deviceName deviceDetails"]
+  set cmd [lindex $commandMap 1]
 } -body {
   {*}$cmd
 } -result {wrong # args: should be "device deviceName deviceDetails"} \
@@ -60,13 +60,13 @@ create a nested dictionary and parse a script} -setup {
   set deviceSectionAliases [list             \
     [makeSetConfigCmd write_cache 1 "1|0"]   \
     [makeSetConfigCmd dma 1 "1|0"]]
-  set alias [makeSectionCmd device $deviceSectionAliases \
-                                   "deviceName deviceDetails"]
+  set commandMap [makeSectionCmd device $deviceSectionAliases \
+                                 "deviceName deviceDetails"]
   set deviceScript {
     write_cache 1
     dma 1
   }
-  set cmd [lindex $alias 1]
+  set cmd [lindex $commandMap 1]
 } -body {
   {*}$cmd /dev/hda $deviceScript
 } -result [dict create /dev/hda [dict create write_cache 1 dma 1]] \
@@ -83,13 +83,13 @@ test parseConfig-1 {Returns correct dictionary for script passed} -setup {
     options ro boost
   }
 
-  set aliases [list \
+  set commandMaps [list \
     [makeSetConfigCmd device 1 "1|0"]                       \
     [makeSetConfigCmd write_cache 1 "1|0"]                  \
     [makeSetConfigCmd dma 1 "1|0"]                          \
     [makeSetConfigCmd options many "option ?option ..?"]]
 } -body {
-  parseConfig -aliases $aliases $script
+  parseConfig $commandMaps $script
 } -result [dict create device /dev/hda write_cache 1 dma 1 options {ro boost}]
 
 test parseConfig-2 {Returns nested dictionary for script passed} -setup {
@@ -112,11 +112,11 @@ test parseConfig-2 {Returns nested dictionary for script passed} -setup {
     [makeSetConfigCmd dma 1 "1|0"]                          \
     [makeSetConfigCmd options many "option ?option ..?"]]
 
-  set aliases [list \
+  set commandMaps [list \
     [makeSectionCmd device $deviceSectionAliases "deviceName deviceDetails"]]
 
 } -body {
-  parseConfig -aliases $aliases $script
+  parseConfig $commandMaps $script
 } -result [dict create /dev/hda [dict create        \
                                       write_cache 1 \
                                       dma 1         \
@@ -131,11 +131,11 @@ test parseConfig-3 {Ensure non hidden commands can be run} -setup {
     title "The answer to 2 + 2 is [expr {2 + 2}]"
   }
 
-  set aliases [list \
+  set commandMaps [list \
     [makeSetConfigCmd title 1 "title"]]
 
 } -body {
-  parseConfig -aliases $aliases $script
+  parseConfig $commandMaps $script
 } -result [dict create title "The answer to 2 + 2 is 4"]
 
 
