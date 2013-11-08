@@ -12,38 +12,20 @@ namespace eval configurator {
   namespace export {[a-z]*}
 }
 
-proc configurator::parseConfig {args} {
-  set options {
-    {hidecmds "Hide all commands"}
-    {exposecmds.arg {}
-                    "Expose the specified commands to the slave interpreter"}
-  }
-  set thisCmdName [lindex [info level 0] 0]
-  set usage ": $thisCmdName \[options] commands script\noptions:"
-  array set params [::cmdline::getoptions args $options $usage]
-
+proc configurator::parseConfig {commandMaps script} {
   set safeInterp [interp create -safe]
 
   catch {
     set config [dict create]
      $safeInterp eval {unset {*}[info vars]}
 
-    if {$params(hidecmds)} {
-      foreach command [$safeInterp eval {info commands}] {
-        $safeInterp hide $command
-      }
+    # Hide all the comands
+    foreach command [$safeInterp eval {info commands}] {
+      $safeInterp hide $command
     }
 
-    foreach exposeCmd $params(exposecmds) {
-      $safeInterp expose $exposeCmd
-    }
-
-    lassign $args commandMaps script
-
-    foreach commandMap $commandMaps {
-      lassign $commandMap slaveCmd masterCmd
-      $safeInterp alias $slaveCmd {*}$masterCmd
-    }
+    $safeInterp alias unknown \
+                      configurator::UnknownHandler $commandMaps $safeInterp
 
     $safeInterp eval $script
     return $config
@@ -53,7 +35,19 @@ proc configurator::parseConfig {args} {
   return -options $returnOptions $returnResult
 }
 
-proc configurator::SetConfig {key numValues argsUsage args} {
+proc configurator::UnknownHandler {commandMaps int args} {
+  foreach commandMap $commandMaps {
+    lassign $commandMap slaveCmd masterCmd
+    lassign $args commandExecuted
+    if {$commandExecuted eq $slaveCmd} {
+      set commandArgs [lrange $args 1 end]
+      return [uplevel 1 [list {*}$masterCmd $int {*}$commandArgs]]
+    }
+  }
+  return -code error "invalid command name \"$commandExecuted\""
+}
+
+proc configurator::SetConfig {key numValues argsUsage int args} {
   set numArgs [llength $args]
   if { $numArgs == 0 || \
       ($numValues ne "many" && $numValues != $numArgs)} {
@@ -68,7 +62,7 @@ proc configurator::SetConfig {key numValues argsUsage args} {
   }
 }
 
-proc configurator::Section {cmdName commandMaps argsUsage args} {
+proc configurator::Section {cmdName commandMaps argsUsage int args} {
   if {[llength $args] != 2} {
     Usage "$cmdName $argsUsage"
   }
@@ -78,12 +72,32 @@ proc configurator::Section {cmdName commandMaps argsUsage args} {
     configurator::parseConfig $commandMaps $script]
 }
 
+proc configurator::InvokeHiddenCmd {cmdName exposeAs int args} {
+  set returnCode [catch {
+    $int invokehidden $cmdName {*}$args
+  } returnResult returnOptions]
+  if {$returnCode == 1} {
+    # Use $exposeAs name in error mesage
+    set returnResult [regsub {(wrong # args: should be ")([^ ]+)( .*"$)} \
+                             $returnResult                               \
+                             "\\1$exposeAs\\3"]
+  }
+  return -code $returnCode -options $returnOptions $returnResult
+}
+
 proc configurator::makeSetConfigCmd {key numValues argsUsage} {
   list $key [list configurator::SetConfig $key $numValues $argsUsage]
 }
 
 proc configurator::makeSectionCmd {cmdName commandMaps argsUsage} {
   list $cmdName [list configurator::Section $cmdName $commandMaps $argsUsage]
+}
+
+proc configurator::exposeCmd {cmdName {exposeAs {}}} {
+  if {[llength $exposeAs] == 0} {
+    set exposeAs $cmdName
+  }
+  list $exposeAs [list configurator::InvokeHiddenCmd $cmdName $exposeAs]
 }
 
 proc configurator::Usage {msg} {

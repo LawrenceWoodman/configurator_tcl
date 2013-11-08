@@ -18,17 +18,19 @@ test makeSetConfigCmd-1 {Returns a list where the first element is the key} {
 test makeSetConfigCmd-2 {Returns a list referencing a function that will fail \
 if the wrong number of arguments passed to it} -setup {
   set commandMap [makeSetConfigCmd device 1 "1|0"]
+  set safeInterp [interp create -safe]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd
+  {*}$cmd $safeInterp
 } -result {wrong # args: should be "device 1|0"} -returnCodes {error}
 
 test makeSetConfigCmd-3 {Returns a list referencing a function that will \
 accept many arguments if requested} -setup {
   set commandMap [makeSetConfigCmd options many "option ?option ..?"]
+  set safeInterp [interp create -safe]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd 1 5 4 hello
+  {*}$cmd $safeInterp 1 5 4 hello
 } -result [dict create options {1 5 4 hello}] \
 -cleanup {
   set config {}
@@ -37,9 +39,10 @@ accept many arguments if requested} -setup {
 test makeSetConfigCmd-4 {Returns a list referencing a function that will \
 fail if many arguments requested but none given} -setup {
   set commandMap [makeSetConfigCmd options many "option ?option ..?"]
+  set safeInterp [interp create -safe]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd
+  {*}$cmd $safeInterp
 } -result {wrong # args: should be "options option ?option ..?"} \
   -returnCodes {error}
 
@@ -49,9 +52,10 @@ fail with a sensible error message if wrong number of arguments given} -setup {
   set deviceSectionAliases [list [makeSetConfigCmd dma 1 "1|0"]]
   set commandMap [makeSectionCmd device $deviceSectionAliases \
                                  "deviceName deviceDetails"]
+  set safeInterp [interp create -safe]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd
+  {*}$cmd $safeInterp
 } -result {wrong # args: should be "device deviceName deviceDetails"} \
   -returnCodes {error}
 
@@ -66,9 +70,10 @@ create a nested dictionary and parse a script} -setup {
     write_cache 1
     dma 1
   }
+  set safeInterp [interp create -safe]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd /dev/hda $deviceScript
+  {*}$cmd $safeInterp /dev/hda $deviceScript
 } -result [dict create /dev/hda [dict create write_cache 1 dma 1]] \
 -cleanup {
   set config {}
@@ -126,19 +131,7 @@ test parseConfig-2 {Returns nested dictionary for script passed} -setup {
                                       dma 0         \
                                       options {rw stable}]]
 
-test parseConfig-3 {Ensure non hidden commands can be run} -setup {
-  set script {
-    title "The answer to 2 + 2 is [expr {2 + 2}]"
-  }
-
-  set commandMaps [list \
-    [makeSetConfigCmd title 1 "title"]]
-
-} -body {
-  parseConfig $commandMaps $script
-} -result [dict create title "The answer to 2 + 2 is 4"]
-
-test parseConfig-4 {Ensure correct error when invalid command run} -setup {
+test parseConfig-3 {Ensure correct error when invalid command run} -setup {
   set script {
     bob 7
   }
@@ -149,5 +142,31 @@ test parseConfig-4 {Ensure correct error when invalid command run} -setup {
 } -body {
   parseConfig $commandMaps $script
 } -result {invalid command name "bob"} -returnCodes {error}
+
+test parseConfig-4 {Ensure exposed commands are run in correct scope} -setup {
+  set script {
+    set a 5
+    title "The answer to 2 + $a is [expr {2 + $a}]"
+  }
+
+  set commandMaps [list                 \
+    [makeSetConfigCmd title 1 "title"]  \
+    [exposeCmd set]                     \
+    [exposeCmd expr]]
+} -body {
+  parseConfig $commandMaps $script
+} -result {title {The answer to 2 + 5 is 7}}
+
+test parseConfig-5 {Ensure that renamed exposed commands return correct \
+error message when supplied with incorrect number of arguments} -setup {
+  set script {
+    %set a 5 7
+  }
+
+  set commandMaps [list [exposeCmd set %set]]
+} -body {
+  parseConfig $commandMaps $script
+} -result {wrong # args: should be "%set varName ?newValue?"} \
+-returnCodes {error}
 
 cleanupTests
