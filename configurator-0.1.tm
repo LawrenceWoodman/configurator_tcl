@@ -6,7 +6,6 @@
 #
 
 package require Tcl 8.5
-package require cmdline
 
 namespace eval configurator {
   namespace export {[a-z]*}
