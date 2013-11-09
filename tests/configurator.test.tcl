@@ -19,30 +19,30 @@ test makeSetConfigCmd-2 {Returns a list referencing a function that will fail \
 if the wrong number of arguments passed to it} -setup {
   set commandMap [makeSetConfigCmd device 1 "1|0"]
   set safeInterp [interp create -safe]
+  set config [dict create]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd $safeInterp
+  {*}$cmd $safeInterp config
 } -result {wrong # args: should be "device 1|0"} -returnCodes {error}
 
 test makeSetConfigCmd-3 {Returns a list referencing a function that will \
 accept many arguments if requested} -setup {
   set commandMap [makeSetConfigCmd options many "option ?option ..?"]
   set safeInterp [interp create -safe]
+  set config [dict create]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd $safeInterp 1 5 4 hello
-} -result [dict create options {1 5 4 hello}] \
--cleanup {
-  set config {}
-}
+  {*}$cmd $safeInterp config 1 5 4 hello
+} -result [dict create options {1 5 4 hello}]
 
 test makeSetConfigCmd-4 {Returns a list referencing a function that will \
 fail if many arguments requested but none given} -setup {
   set commandMap [makeSetConfigCmd options many "option ?option ..?"]
   set safeInterp [interp create -safe]
+  set config [dict create]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd $safeInterp
+  {*}$cmd $safeInterp config
 } -result {wrong # args: should be "options option ?option ..?"} \
   -returnCodes {error}
 
@@ -53,9 +53,10 @@ fail with a sensible error message if wrong number of arguments given} -setup {
   set commandMap [makeSectionCmd device $deviceSectionAliases \
                                  "deviceName deviceDetails"]
   set safeInterp [interp create -safe]
+  set config [dict create]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd $safeInterp
+  {*}$cmd $safeInterp config
 } -result {wrong # args: should be "device deviceName deviceDetails"} \
   -returnCodes {error}
 
@@ -71,13 +72,11 @@ create a nested dictionary and parse a script} -setup {
     dma 1
   }
   set safeInterp [interp create -safe]
+  set config [dict create]
   set cmd [lindex $commandMap 1]
 } -body {
-  {*}$cmd $safeInterp /dev/hda $deviceScript
-} -result [dict create /dev/hda [dict create write_cache 1 dma 1]] \
--cleanup {
-  set config {}
-}
+  {*}$cmd $safeInterp config /dev/hda $deviceScript
+} -result [dict create /dev/hda [dict create write_cache 1 dma 1]]
 
 
 test parseConfig-1 {Returns correct dictionary for script passed} -setup {
@@ -168,5 +167,22 @@ error message when supplied with incorrect number of arguments} -setup {
   parseConfig $commandMaps $script
 } -result {wrong # args: should be "%set varName ?newValue?"} \
 -returnCodes {error}
+
+test parseConfig-6 {Ensure that if setConfig commands run within procs they \
+still update config appropriately} -setup {
+  set script {
+    proc setTitle sum {
+      title "The sum is: $sum"
+    }
+
+    setTitle 5
+  }
+
+  set commandMaps [list                 \
+    [makeSetConfigCmd title 1 "title"]  \
+    [exposeCmd proc]]
+} -body {
+  parseConfig $commandMaps $script
+} -result {title {The sum is: 5}}
 
 cleanupTests

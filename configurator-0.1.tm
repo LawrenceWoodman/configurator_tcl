@@ -24,8 +24,10 @@ proc configurator::parseConfig {commandMaps script} {
       $safeInterp hide $command
     }
 
-    $safeInterp alias unknown \
-                      configurator::UnknownHandler $commandMaps $safeInterp
+    $safeInterp alias unknown                                   \
+                      configurator::UnknownHandler $commandMaps \
+                                                   $safeInterp  \
+                                                   config
 
     $safeInterp eval $script
     return $config
@@ -35,25 +37,26 @@ proc configurator::parseConfig {commandMaps script} {
   return -options $returnOptions $returnResult
 }
 
-proc configurator::UnknownHandler {commandMaps int args} {
+proc configurator::UnknownHandler {commandMaps int configVarName args} {
+  upvar $configVarName config
   foreach commandMap $commandMaps {
     lassign $commandMap slaveCmd masterCmd
     lassign $args commandExecuted
     if {$commandExecuted eq $slaveCmd} {
       set commandArgs [lrange $args 1 end]
-      return [uplevel 1 [list {*}$masterCmd $int {*}$commandArgs]]
+      return [uplevel 1 [list {*}$masterCmd $int config {*}$commandArgs]]
     }
   }
   return -code error "invalid command name \"$commandExecuted\""
 }
 
-proc configurator::SetConfig {key numValues argsUsage int args} {
+proc configurator::SetConfig {key numValues argsUsage int configVarName args} {
   set numArgs [llength $args]
   if { $numArgs == 0 || \
       ($numValues ne "many" && $numValues != $numArgs)} {
     Usage "$key $argsUsage"
   } else {
-    upvar config config
+    upvar $configVarName config
     if {$numArgs == 1} {
       dict set config $key [lindex $args 0]
     } else {
@@ -62,17 +65,18 @@ proc configurator::SetConfig {key numValues argsUsage int args} {
   }
 }
 
-proc configurator::Section {cmdName commandMaps argsUsage int args} {
+proc configurator::Section {cmdName commandMaps argsUsage int configVarName
+                            args} {
   if {[llength $args] != 2} {
     Usage "$cmdName $argsUsage"
   }
   lassign $args sectionName script
-  upvar config config
+  upvar $configVarName config
   dict set config $sectionName [
     configurator::parseConfig $commandMaps $script]
 }
 
-proc configurator::InvokeHiddenCmd {cmdName exposeAs int args} {
+proc configurator::InvokeHiddenCmd {cmdName exposeAs int configVarName args} {
   set returnCode [catch {
     $int invokehidden $cmdName {*}$args
   } returnResult returnOptions]
