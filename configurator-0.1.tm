@@ -11,22 +11,73 @@ namespace eval configurator {
   namespace export {[a-z]*}
 }
 
-proc configurator::parseConfig {commandMaps script} {
+proc configurator::parseConfig {args} {
+  set keys {}
+  set exposeCmds {}
+  set scriptPos 0
+  foreach {option value} $args {
+    if {![string match {-*} $option]} {
+      break
+    }
+    switch $option {
+      "-keys" {
+        set keys $value
+        incr scriptPos 2
+      }
+      "-expose" {
+        set exposeCmds $value
+        incr scriptPos 2
+      }
+      default {
+        return -code error "bad option \"$option\": must be -expose or -keys"
+      }
+    }
+  }
+
+  set args [lrange $args $scriptPos end]
+
+  if {[llength $args] > 1} {
+    Usage "parseConfig ?-option value ...? script"
+  }
+
+  set script [lindex $args 0]
+
   set safeInterp [interp create -safe]
 
   catch {
     set config [dict create]
-     $safeInterp eval {unset {*}[info vars]}
+    $safeInterp eval {unset {*}[info vars]}
 
-    # Hide all the comands
-    foreach command [$safeInterp eval {info commands}] {
-      $safeInterp hide $command
+    if {[llength $exposeCmds] == 0} {
+      $safeInterp eval {namespace delete ::}
+    } else {
+      # Hide all the comands
+      foreach command [$safeInterp eval {info commands}] {
+        $safeInterp hide $command
+      }
+
+      foreach {hiddenName exposedName} $exposeCmds {
+        $safeInterp expose $hiddenName $exposedName
+      }
     }
 
-    $safeInterp alias unknown                                   \
-                      configurator::UnknownHandler $commandMaps \
-                                                   $safeInterp  \
-                                                   config
+    foreach {key keyConfig} $keys {
+      lassign $keyConfig numValues argsUsage
+      $safeInterp alias $key \
+          configurator::SetConfig $key $numValues $argsUsage config
+    }
+
+    if {[llength $keys] == 0} {
+      $safeInterp alias unknown                            \
+          configurator::UnknownHandler $safeInterp config
+    } else {
+      foreach {key keyConfig} $keys {
+        lassign $keyConfig numValues argsUsage
+        $safeInterp alias $key \
+            configurator::SetConfig $key $numValues $argsUsage config
+      }
+    }
+
 
     $safeInterp eval $script
     return $config
@@ -36,71 +87,30 @@ proc configurator::parseConfig {commandMaps script} {
   return -options $returnOptions $returnResult
 }
 
-proc configurator::UnknownHandler {commandMaps int configVarName args} {
-  upvar $configVarName config
-  foreach commandMap $commandMaps {
-    lassign $commandMap slaveCmd masterCmd
-    lassign $args commandExecuted
-    if {$commandExecuted eq $slaveCmd} {
-      set commandArgs [lrange $args 1 end]
-      return [uplevel 1 [list {*}$masterCmd $int config {*}$commandArgs]]
-    }
+proc configurator::UnknownHandler {int configVariable args} {
+  lassign $args key
+  set values [lrange $args 1 end]
+  if {[llength $values] != 1} {
+    Usage "$key arg"
   }
-  return -code error "invalid command name \"$commandExecuted\""
+  upvar $configVariable config
+  SetConfig $key 1 "arg" config {*}$values
 }
 
-proc configurator::SetConfig {key numValues argsUsage int configVarName args} {
+proc configurator::SetConfig {key numValues argsUsage configVariable \
+                                   args} {
   set numArgs [llength $args]
   if { $numArgs == 0 || \
       ($numValues ne "many" && $numValues != $numArgs)} {
     Usage "$key $argsUsage"
   } else {
-    upvar $configVarName config
-    if {$numArgs == 1} {
-      dict set config $key [lindex $args 0]
-    } else {
+    upvar $configVariable config
+    if {$numValues eq "many" || $numValues > 1} {
       dict set config $key $args
+    } else {
+      dict set config $key [lindex $args 0]
     }
   }
-}
-
-proc configurator::Section {cmdName commandMaps argsUsage int configVarName
-                            args} {
-  if {[llength $args] != 2} {
-    Usage "$cmdName $argsUsage"
-  }
-  lassign $args sectionName script
-  upvar $configVarName config
-  dict set config $sectionName [
-    configurator::parseConfig $commandMaps $script]
-}
-
-proc configurator::InvokeHiddenCmd {cmdName exposeAs int configVarName args} {
-  set returnCode [catch {
-    $int invokehidden $cmdName {*}$args
-  } returnResult returnOptions]
-  if {$returnCode == 1} {
-    # Use $exposeAs name in error mesage
-    set returnResult [regsub {(wrong # args: should be ")([^ ]+)( .*"$)} \
-                             $returnResult                               \
-                             "\\1$exposeAs\\3"]
-  }
-  return -code $returnCode -options $returnOptions $returnResult
-}
-
-proc configurator::makeSetConfigCmd {key numValues argsUsage} {
-  list $key [list configurator::SetConfig $key $numValues $argsUsage]
-}
-
-proc configurator::makeSectionCmd {cmdName commandMaps argsUsage} {
-  list $cmdName [list configurator::Section $cmdName $commandMaps $argsUsage]
-}
-
-proc configurator::exposeCmd {cmdName {exposeAs {}}} {
-  if {[llength $exposeAs] == 0} {
-    set exposeAs $cmdName
-  }
-  list $exposeAs [list configurator::InvokeHiddenCmd $cmdName $exposeAs]
 }
 
 proc configurator::Usage {msg} {
