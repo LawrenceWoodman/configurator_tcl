@@ -12,72 +12,15 @@ namespace eval configurator {
 }
 
 proc configurator::parseConfig {args} {
-  set keys {}
-  set exposeCmds {}
-  set scriptPos 0
-  foreach {option value} $args {
-    if {![string match {-*} $option]} {
-      break
-    }
-    switch $option {
-      "-keys" {
-        set keys $value
-        incr scriptPos 2
-      }
-      "-expose" {
-        set exposeCmds $value
-        incr scriptPos 2
-      }
-      default {
-        return -code error "bad option \"$option\": must be -expose or -keys"
-      }
-    }
-  }
-
-  set args [lrange $args $scriptPos end]
-
-  if {[llength $args] > 1} {
-    Usage "parseConfig ?-option value ...? script"
-  }
-
-  set script [lindex $args 0]
-
+  lassign [HandleArgs $args] keys exposeCmds script
   set safeInterp [interp create -safe]
 
   catch {
     set config [dict create]
     $safeInterp eval {unset {*}[info vars]}
 
-    if {[llength $exposeCmds] == 0} {
-      $safeInterp eval {namespace delete ::}
-    } else {
-      # Hide all the comands
-      foreach command [$safeInterp eval {info commands}] {
-        $safeInterp hide $command
-      }
-
-      foreach {hiddenName exposedName} $exposeCmds {
-        $safeInterp expose $hiddenName $exposedName
-      }
-    }
-
-    foreach {key keyConfig} $keys {
-      lassign $keyConfig numValues argsUsage
-      $safeInterp alias $key \
-          configurator::SetConfig $key $numValues $argsUsage config
-    }
-
-    if {[llength $keys] == 0} {
-      $safeInterp alias unknown                            \
-          configurator::UnknownHandler $safeInterp config
-    } else {
-      foreach {key keyConfig} $keys {
-        lassign $keyConfig numValues argsUsage
-        $safeInterp alias $key \
-            configurator::SetConfig $key $numValues $argsUsage config
-      }
-    }
-
+    ExposeCorrectCmds $safeInterp $exposeCmds
+    CreateKeyCmds $safeInterp $keys
 
     $safeInterp eval $script
     return $config
@@ -109,6 +52,69 @@ proc configurator::SetConfig {key numValues argsUsage configVariable \
       dict set config $key $args
     } else {
       dict set config $key [lindex $args 0]
+    }
+  }
+}
+
+proc configurator::HandleArgs {_args} {
+  set keys {}
+  set exposeCmds {}
+  set scriptPos 0
+  foreach {option value} $_args {
+    if {![string match {-*} $option]} {
+      break
+    }
+    switch $option {
+      "-keys" {
+        set keys $value
+        incr scriptPos 2
+      }
+      "-expose" {
+        set exposeCmds $value
+        incr scriptPos 2
+      }
+      default {
+        return -code error "bad option \"$option\": must be -expose or -keys"
+      }
+    }
+  }
+
+  set _args [lrange $_args $scriptPos end]
+
+  if {[llength $_args] != 1} {
+    Usage "parseConfig ?-option value ...? script"
+  }
+
+  set script [lindex $_args 0]
+  list $keys $exposeCmds $script
+}
+
+proc configurator::ExposeCorrectCmds {int exposeCmds} {
+  if {[llength $exposeCmds] == 0} {
+    $int eval {namespace delete ::}
+  } else {
+    foreach command [$int eval {info commands}] {
+      $int hide $command
+    }
+
+    foreach {hiddenName exposedName} $exposeCmds {
+      $int expose $hiddenName $exposedName
+    }
+  }
+}
+
+proc configurator::CreateKeyCmds {int keys} {
+  foreach {key keyConfig} $keys {
+    lassign $keyConfig numValues argsUsage
+    $int alias $key configurator::SetConfig $key $numValues $argsUsage config
+  }
+
+  if {[llength $keys] == 0} {
+    $int alias unknown configurator::UnknownHandler $int config
+  } else {
+    foreach {key keyConfig} $keys {
+      lassign $keyConfig numValues argsUsage
+      $int alias $key configurator::SetConfig $key $numValues $argsUsage config
     }
   }
 }
