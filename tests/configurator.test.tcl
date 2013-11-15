@@ -150,7 +150,7 @@ using a different name} -setup {
 
   set exposeCmds {
     set set
-    string %string
+    %string string
   }
 } -body {
   parseConfig -keys $keys -expose $exposeCmds $script
@@ -165,7 +165,7 @@ error message when supplied with incorrect number of arguments} -setup {
   }
 
   set exposeCmds {
-    set %set
+    %set set
   }
 } -body {
   parseConfig -expose $exposeCmds $script

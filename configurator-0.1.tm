@@ -110,7 +110,7 @@ proc configurator::ExposeCorrectCmds {int exposeCmds} {
       $int hide $command
     }
 
-    foreach {hiddenName exposedName} $exposeCmds {
+    foreach {exposedName hiddenName} $exposeCmds {
       $int expose $hiddenName $exposedName
     }
   }
