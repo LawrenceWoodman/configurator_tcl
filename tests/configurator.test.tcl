@@ -189,4 +189,16 @@ they still update config appropriately} -setup {
   parseConfig -expose $exposeCmds $script
 } -result {title {The sum is: 5}}
 
+test parseConfig-13 {Ensure that aliases work properly} -setup {
+  set script {
+    title "The sum of 5 and 6 is [sum 5 6]"
+  }
+
+  set aliases {
+    sum tcl::mathop::+
+  }
+} -body {
+  parseConfig -aliases $aliases $script
+} -result {title {The sum of 5 and 6 is 11}}
+
 cleanupTests

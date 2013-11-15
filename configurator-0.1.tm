@@ -12,7 +12,7 @@ namespace eval configurator {
 }
 
 proc configurator::parseConfig {args} {
-  lassign [HandleArgs $args] keys exposeCmds script
+  lassign [HandleArgs $args] aliases exposeCmds keys script
   set safeInterp [interp create -safe]
 
   catch {
@@ -20,6 +20,7 @@ proc configurator::parseConfig {args} {
     $safeInterp eval {unset {*}[info vars]}
 
     ExposeCorrectCmds $safeInterp $exposeCmds
+    CreateAliases $safeInterp $aliases
     CreateKeyCmds $safeInterp $keys
 
     $safeInterp eval $script
@@ -57,24 +58,30 @@ proc configurator::SetConfig {key numValues argsUsage configVariable \
 }
 
 proc configurator::HandleArgs {_args} {
-  set keys {}
+  set aliases {}
   set exposeCmds {}
+  set keys {}
   set scriptPos 0
   foreach {option value} $_args {
     if {![string match {-*} $option]} {
       break
     }
     switch $option {
-      "-keys" {
-        set keys $value
+      "-aliases" {
+        set aliases $value
         incr scriptPos 2
       }
       "-expose" {
         set exposeCmds $value
         incr scriptPos 2
       }
+      "-keys" {
+        set keys $value
+        incr scriptPos 2
+      }
       default {
-        return -code error "bad option \"$option\": must be -expose or -keys"
+        return -code error \
+            "bad option \"$option\": must be -aliases, -expose or -keys"
       }
     }
   }
@@ -86,7 +93,13 @@ proc configurator::HandleArgs {_args} {
   }
 
   set script [lindex $_args 0]
-  list $keys $exposeCmds $script
+  list $aliases $exposeCmds $keys $script
+}
+
+proc configurator::CreateAliases {int aliases} {
+  dict for {slaveCmd masterCmd} $aliases {
+    $int alias $slaveCmd $masterCmd
+  }
 }
 
 proc configurator::ExposeCorrectCmds {int exposeCmds} {
