@@ -21,11 +21,11 @@ test parseConfig-1 {Returns correct dictionary for script passed using \
   }
 
   set keys {
-    device {1 "1|0"}
-    desc {1 "description"}
-    write_cache {1 "1|0"}
-    dma {1 "1|0"}
-    options {many "option ?option ...?"}
+    device {device 1 "1|0"}
+    desc {desc 1 "description"}
+    write_cache {write_cache 1 "1|0"}
+    dma {dma 1 "1|0"}
+    options {options many "option ?option ...?"}
   }
 } -body {
   parseConfig -keys $keys $script
@@ -52,7 +52,7 @@ test parseConfig-3 {Ensure correct error when invalid command run} -setup {
   }
 
   set keys {
-    title {1 "title"}
+    title {title 1 "title"}
   }
 
 } -body {
@@ -66,7 +66,7 @@ passed to fixed arg key} -setup {
   }
 
   set keys {
-    title {2 "chapter title"}
+    title {title 2 "chapter title"}
   }
 
 } -body {
@@ -80,7 +80,7 @@ passed to many arg key} -setup {
   }
 
   set keys {
-    options {many "option ?option ...?"}
+    options {options many "option ?option ...?"}
   }
 
 } -body {
@@ -95,7 +95,7 @@ values as a list even if only 1 item given} -setup {
   }
 
   set keys {
-    titles {many "title ?title ...?"}
+    titles {titles many "title ?title ...?"}
   }
 
 } -body {
@@ -111,32 +111,46 @@ error when not passed any arguments} -setup {
   parseConfig $script
 } -result {wrong # args: should be "title arg"} -returnCodes {error}
 
-test parseConfig-8 {Ensure that namespace children are removed by \
+test parseConfig-8 {Ensure that you can use a different name for a key \
+command than the field name} -setup {
+  set script {
+    !title "this is a title"
+  }
+
+  set keys {
+    !title {title 1 "title title"}
+  }
+
+} -body {
+  parseConfig -keys $keys $script
+} -result [dict create title {this is a title}]
+
+test parseConfig-9 {Ensure that namespace children are removed by \
 default} -setup {
   set script {
     titles "this is a number: [::string::length "title"]"
   }
 
   set keys {
-    title {1 "title title"}
+    title {title 1 "title title"}
   }
 } -body {
   parseConfig -keys $keys $script
 } -result {invalid command name "::string::length"} -returnCodes {error}
 
-test parseConfig-9 {Ensure that commands are removed by default} -setup {
+test parseConfig-10 {Ensure that commands are removed by default} -setup {
   set script {
     set a 5
   }
 
   set keys {
-    title {1 "title title"}
+    title {title 1 "title title"}
   }
 } -body {
   parseConfig -keys $keys $script
 } -result {invalid command name "set"} -returnCodes {error}
 
-test parseConfig-10 {Ensure that commands can be exposed including \
+test parseConfig-11 {Ensure that commands can be exposed including \
 using a different name} -setup {
   set script {
     set a 5
@@ -145,7 +159,7 @@ using a different name} -setup {
   }
 
   set keys {
-    titles {many "title ?title ...?"}
+    titles {titles many "title ?title ...?"}
   }
 
   set exposeCmds {
@@ -158,7 +172,7 @@ using a different name} -setup {
   {Title with the number 5 in it} \
   {Five is 4 characters long}]]
 
-test parseConfig-11 {Ensure that renamed exposed commands return correct \
+test parseConfig-12 {Ensure that renamed exposed commands return correct \
 error message when supplied with incorrect number of arguments} -setup {
   set script {
     %set a 5 7
@@ -172,7 +186,7 @@ error message when supplied with incorrect number of arguments} -setup {
 } -result {wrong # args: should be "%set varName ?newValue?"} \
 -returnCodes {error}
 
-test parseConfig-12 {Ensure that if setConfig commands run within procs \
+test parseConfig-13 {Ensure that if setConfig commands run within procs \
 they still update config appropriately} -setup {
   set script {
     proc setTitle sum {
@@ -189,7 +203,7 @@ they still update config appropriately} -setup {
   parseConfig -expose $exposeCmds $script
 } -result {title {The sum is: 5}}
 
-test parseConfig-13 {Ensure that aliases work properly} -setup {
+test parseConfig-14 {Ensure that aliases work properly} -setup {
   set script {
     title "The sum of 5 and 6 is [sum 5 6]"
   }

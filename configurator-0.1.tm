@@ -117,17 +117,19 @@ proc configurator::ExposeCorrectCmds {int exposeCmds} {
 }
 
 proc configurator::CreateKeyCmds {int keys} {
-  foreach {key keyConfig} $keys {
-    lassign $keyConfig numValues argsUsage
-    $int alias $key configurator::SetConfig $key $numValues $argsUsage config
+  foreach {commandName keyConfig} $keys {
+    lassign $keyConfig key numValues argsUsage
+    $int alias $commandName configurator::SetConfig $key $numValues \
+        $argsUsage config
   }
 
   if {[llength $keys] == 0} {
     $int alias unknown configurator::UnknownHandler $int config
   } else {
-    foreach {key keyConfig} $keys {
-      lassign $keyConfig numValues argsUsage
-      $int alias $key configurator::SetConfig $key $numValues $argsUsage config
+    foreach {commandName keyConfig} $keys {
+      lassign $keyConfig key numValues argsUsage
+      $int alias $commandName configurator::SetConfig $key $numValues \
+          $argsUsage config
     }
   }
 }

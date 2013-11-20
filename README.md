@@ -29,18 +29,20 @@ If you wanted to make the configuration script more resilient you can specify th
       device /dev/hda
       desc {Main hdd}
       write_cache 1
-      dma 1
+      !dma 1
       options ro boost
     }
 
     # Note the use of many, for options in the keys dictionary,
     # which allows options to take multiple values in the script.
+    # You can also see that !dma is used as the command to set the
+    # dma field.
     set keys {
-      device {1 "1|0"}
-      desc {1 "description"}
-      write_cache {1 "1|0"}
-      dma {1 "1|0"}
-      options {many "option ?option ...?"}
+      device {device 1 "1|0"}
+      desc {desc 1 "description"}
+      write_cache {write_cache 1 "1|0"}
+      !dma {dma 1 "1|0"}
+      options {options many "option ?option ...?"}
     }
 
     # Outputs the same dictionary as above:
@@ -97,7 +99,7 @@ Parses the _script_ and outputs a dictionary representing the given configuratio
   <dt>-expose</dt>
     <dd>A dictionary of hidden commands to expose that has the exposed command name as the key and hidden command name as the value.  When this option is chosen, instead of deleting the entire <code>::</code> namespace, the interpreter only hides the commands returned by <code>info commands</code>, so you will now be able to access for example <code>::string::length</code> as standard.</dd>
   <dt>-keys</dt>
-    <dd>A dictionary of keys where each key is the key and the value is a list of the form: <code>{numValues argsUsage}</code>.</dd>
+    <dd>A dictionary of keys where each key is the command name to set a key within the configuration dictionary and the value is a list of the form: <code>{key numValues argsUsage}</code>.</dd>
 </dl>
 
 Requirements
