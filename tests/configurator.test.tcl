@@ -130,7 +130,7 @@ command than the field name} -setup {
 test parseConfig-9 {Ensure that namespace children are removed by \
 default} -setup {
   set script {
-    titles "this is a number: [::string::length "title"]"
+    titles "this is a number: [::tcl::string::length "title"]"
   }
 
   set keys {
@@ -138,9 +138,9 @@ default} -setup {
   }
 } -body {
   parseConfig -keys $keys $script
-} -result {invalid command name "::string::length"} -returnCodes {error}
+} -result {invalid command name "::tcl::string::length"} -returnCodes {error}
 
-test parseConfig-10 {Ensure that commands are removed by default} -setup {
+test parseConfig-10 {Ensure that commands are hidden by default} -setup {
   set script {
     set a 5
   }
@@ -205,7 +205,7 @@ they still update config appropriately} -setup {
   parseConfig -exposeCmds $exposeCmds $script
 } -result {title {The sum is: 5}}
 
-test parseConfig-14 {Ensure that aliases work properly} -setup {
+test parseConfig-14 {Ensure that master commands work properly} -setup {
   set script {
     title "The sum of 5 and 6 is [sum 5 6]"
   }
@@ -231,5 +231,31 @@ environment} -setup {
 } -body {
   parseConfig -slaveCmds $slaveCmds $script
 } -result {title {a is set to: 7}}
+
+test parseConfig-16 {Ensure that namespace children are not removed when \
+-slaveCmds is used} -setup {
+  set script {
+    title "this is a number: [::tcl::string::length "title"]"
+  }
+
+  set keys {
+    title {title 1 "title title"}
+  }
+} -body {
+  parseConfig -keys $keys -slaveCmds {} $script
+} -result {title {this is a number: 5}}
+
+test parseConfig-17 {Ensure that namespace children are not removed when \
+-exposeCmds is used} -setup {
+  set script {
+    title "this is a number: [::tcl::string::length "title"]"
+  }
+
+  set keys {
+    title {title 1 "title title"}
+  }
+} -body {
+  parseConfig -keys $keys -exposeCmds {} $script
+} -result {title {this is a number: 5}}
 
 cleanupTests
