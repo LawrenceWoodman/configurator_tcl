@@ -169,7 +169,7 @@ using a different name} -setup {
     %string string
   }
 } -body {
-  parseConfig -keys $keys -expose $exposeCmds $script
+  parseConfig -keys $keys -exposeCmds $exposeCmds $script
 } -result [dict create titles [list \
   {Title with the number 5 in it} \
   {Five is 4 characters long}]]
@@ -184,7 +184,7 @@ error message when supplied with incorrect number of arguments} -setup {
     %set set
   }
 } -body {
-  parseConfig -expose $exposeCmds $script
+  parseConfig -exposeCmds $exposeCmds $script
 } -result {wrong # args: should be "%set varName ?newValue?"} \
 -returnCodes {error}
 
@@ -202,7 +202,7 @@ they still update config appropriately} -setup {
     proc proc
   }
 } -body {
-  parseConfig -expose $exposeCmds $script
+  parseConfig -exposeCmds $exposeCmds $script
 } -result {title {The sum is: 5}}
 
 test parseConfig-14 {Ensure that aliases work properly} -setup {

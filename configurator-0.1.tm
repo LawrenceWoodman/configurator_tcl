@@ -18,6 +18,7 @@ proc configurator::parseConfig {args} {
   catch {
     set config [dict create]
     $safeInterp eval {unset {*}[info vars]}
+    HideAllCmds $safeInterp
     ProcessOptions $safeInterp $options
 
     $safeInterp eval $script
@@ -55,58 +56,48 @@ proc configurator::SetConfig {key numValues argsUsage configVariable \
 }
 
 proc configurator::HandleArgs {_args} {
-  set optionsKeys {
-    -masterCmds masterCmds -expose exposeCmds
-    -keys keyCmds -slaveCmds slaveCmds
-  }
+  set validOptions {-exposeCmds -keys -masterCmds -slaveCmds}
+
   set options {}
   foreach {option value} $_args {
     if {![string match {-*} $option]} {
       break
     }
-    if {[dict exists $optionsKeys $option]} {
-      dict set options [dict get $optionsKeys $option] $value
+    if {[lsearch $validOptions $option] != -1} {
+      dict set options $option $value
     } else {
       return -code error \
-          "bad option \"$option\": must be -expose, -keys, -masterCmds or\
+          "bad option \"$option\": must be -exposeCmds, -keys, -masterCmds or\
 -slaveCmds"
     }
   }
 
   set scriptPos [expr {2 * [dict size $options]}]
-  set _args [lrange $_args $scriptPos end]
 
-  if {[llength $_args] != 1} {
+  if {$scriptPos != ([llength $_args] - 1)} {
     Usage "parseConfig ?-option value ...? script"
   }
 
-  set script [lindex $_args 0]
+  set script [lindex $_args $scriptPos]
   list $options $script
 }
 
 proc configurator::ProcessOptions {int options} {
-  if {[dict exists $options exposeCmds] || \
-      [dict exists $options slaveCmds]} {
-    HideAllCmds $int
-  } else {
-    $int eval {namespace delete ::}
+  if {![dict exists $options -exposeCmds] &&
+      ![dict exists $options -slaveCmds]} {
+    $int invokehidden namespace delete ::
   }
 
-  if {[dict exists $options exposeCmds]} {
-    ExposeCmds $int [dict get $options exposeCmds]
+  foreach {option value} $options {
+    switch $option {
+      -exposeCmds {ExposeCmds $int $value}
+      -masterCmds {CreateMasterCmds $int $value}
+      -slaveCmds  {CreateSlaveCmds $int $value}
+      -keys       {CreateKeyCmds $int $value}
+    }
   }
 
-  if {[dict exists $options masterCmds]} {
-    CreateMasterCmds $int [dict get $options masterCmds]
-  }
-
-  if {[dict exists $options slaveCmds]} {
-    CreateSlaveCmds $int [dict get $options slaveCmds]
-  }
-
-  if {[dict exists $options keyCmds]} {
-    CreateKeyCmds $int [dict get $options keyCmds]
-  } else {
+  if {![dict exists $options -keys]} {
     $int alias unknown configurator::UnknownHandler $int config
   }
 }
