@@ -126,12 +126,6 @@ proc configurator::CreateKeyCmds {int keys} {
     $int alias $commandName configurator::SetConfig $key $numValues \
         $argsUsage config
   }
-
-  foreach {commandName keyConfig} $keys {
-    lassign $keyConfig key numValues argsUsage
-    $int alias $commandName configurator::SetConfig $key $numValues \
-        $argsUsage config
-  }
 }
 
 proc configurator::CreateSlaveCmds {int slaveCmds} {
