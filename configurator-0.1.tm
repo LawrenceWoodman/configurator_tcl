@@ -12,16 +12,13 @@ namespace eval configurator {
 }
 
 proc configurator::parseConfig {args} {
-  lassign [HandleArgs $args] aliases exposeCmds keys script
+  lassign [HandleArgs $args] options script
   set safeInterp [interp create -safe]
 
   catch {
     set config [dict create]
     $safeInterp eval {unset {*}[info vars]}
-
-    ExposeCorrectCmds $safeInterp $exposeCmds
-    CreateAliases $safeInterp $aliases
-    CreateKeyCmds $safeInterp $keys
+    ProcessOptions $safeInterp $options
 
     $safeInterp eval $script
     return $config
@@ -58,34 +55,25 @@ proc configurator::SetConfig {key numValues argsUsage configVariable \
 }
 
 proc configurator::HandleArgs {_args} {
-  set aliases {}
-  set exposeCmds {}
-  set keys {}
-  set scriptPos 0
+  set optionsKeys {
+    -masterCmds masterCmds -expose exposeCmds
+    -keys keyCmds -slaveCmds slaveCmds
+  }
+  set options {}
   foreach {option value} $_args {
     if {![string match {-*} $option]} {
       break
     }
-    switch $option {
-      "-aliases" {
-        set aliases $value
-        incr scriptPos 2
-      }
-      "-expose" {
-        set exposeCmds $value
-        incr scriptPos 2
-      }
-      "-keys" {
-        set keys $value
-        incr scriptPos 2
-      }
-      default {
-        return -code error \
-            "bad option \"$option\": must be -aliases, -expose or -keys"
-      }
+    if {[dict exists $optionsKeys $option]} {
+      dict set options [dict get $optionsKeys $option] $value
+    } else {
+      return -code error \
+          "bad option \"$option\": must be -expose, -keys, -masterCmds or\
+-slaveCmds"
     }
   }
 
+  set scriptPos [expr {2 * [dict size $options]}]
   set _args [lrange $_args $scriptPos end]
 
   if {[llength $_args] != 1} {
@@ -93,26 +81,51 @@ proc configurator::HandleArgs {_args} {
   }
 
   set script [lindex $_args 0]
-  list $aliases $exposeCmds $keys $script
+  list $options $script
 }
 
-proc configurator::CreateAliases {int aliases} {
-  dict for {slaveCmd masterCmd} $aliases {
+proc configurator::ProcessOptions {int options} {
+  if {[dict exists $options exposeCmds] || \
+      [dict exists $options slaveCmds]} {
+    HideAllCmds $int
+  } else {
+    $int eval {namespace delete ::}
+  }
+
+  if {[dict exists $options exposeCmds]} {
+    ExposeCmds $int [dict get $options exposeCmds]
+  }
+
+  if {[dict exists $options masterCmds]} {
+    CreateMasterCmds $int [dict get $options masterCmds]
+  }
+
+  if {[dict exists $options slaveCmds]} {
+    CreateSlaveCmds $int [dict get $options slaveCmds]
+  }
+
+  if {[dict exists $options keyCmds]} {
+    CreateKeyCmds $int [dict get $options keyCmds]
+  } else {
+    $int alias unknown configurator::UnknownHandler $int config
+  }
+}
+
+proc configurator::CreateMasterCmds {int masterCmds} {
+  dict for {slaveCmd masterCmd} $masterCmds {
     $int alias $slaveCmd $masterCmd
   }
 }
 
-proc configurator::ExposeCorrectCmds {int exposeCmds} {
-  if {[llength $exposeCmds] == 0} {
-    $int eval {namespace delete ::}
-  } else {
-    foreach command [$int eval {info commands}] {
-      $int hide $command
-    }
+proc configurator::HideAllCmds {int} {
+  foreach command [$int eval {info commands}] {
+    $int hide $command
+  }
+}
 
-    dict for {exposedName hiddenName} $exposeCmds {
-      $int expose $hiddenName $exposedName
-    }
+proc configurator::ExposeCmds {int exposeCmds} {
+  dict for {exposedName hiddenName} $exposeCmds {
+    $int expose $hiddenName $exposedName
   }
 }
 
@@ -123,14 +136,16 @@ proc configurator::CreateKeyCmds {int keys} {
         $argsUsage config
   }
 
-  if {[llength $keys] == 0} {
-    $int alias unknown configurator::UnknownHandler $int config
-  } else {
-    foreach {commandName keyConfig} $keys {
-      lassign $keyConfig key numValues argsUsage
-      $int alias $commandName configurator::SetConfig $key $numValues \
-          $argsUsage config
-    }
+  foreach {commandName keyConfig} $keys {
+    lassign $keyConfig key numValues argsUsage
+    $int alias $commandName configurator::SetConfig $key $numValues \
+        $argsUsage config
+  }
+}
+
+proc configurator::CreateSlaveCmds {int slaveCmds} {
+  dict for {slaveCmd masterCmd} $slaveCmds {
+    $int alias $slaveCmd $masterCmd $int
   }
 }
 

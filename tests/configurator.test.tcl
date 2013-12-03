@@ -6,6 +6,8 @@ set ThisScriptDir [file dirname [info script]]
 set ModuleDir [file normalize [file join $ThisScriptDir ..]]
 ::tcl::tm::path add $ModuleDir
 
+source [file join $ThisScriptDir test_helpers.tcl]
+
 package require configurator
 namespace import configurator::*
 
@@ -208,11 +210,26 @@ test parseConfig-14 {Ensure that aliases work properly} -setup {
     title "The sum of 5 and 6 is [sum 5 6]"
   }
 
-  set aliases {
+  set masterCmds {
     sum tcl::mathop::+
   }
 } -body {
-  parseConfig -aliases $aliases $script
+  parseConfig -masterCmds $masterCmds $script
 } -result {title {The sum of 5 and 6 is 11}}
+
+test parseConfig-15 {Ensure that slave commands can interact with slave \
+environment} -setup {
+  set script {
+    seta 7
+    title "a is set to: $a"
+  }
+
+  set slaveCmds {
+    seta TestHelpers::seta
+  }
+
+} -body {
+  parseConfig -slaveCmds $slaveCmds $script
+} -result {title {a is set to: 7}}
 
 cleanupTests
