@@ -128,7 +128,7 @@ Installation
 ------------
 To install the module you can use the [installmodule.tcl](https://github.com/LawrenceWoodman/installmodule_tcl) script or if you want to manually copy the file `configurator-*.tm` to a specific location that Tcl expects to find modules.  This would typically be something like:
 
-    /usr/share/tcltk/tcl8.6/tcl8/
+    /usr/share/tcltk/tcl8.5/tcl8/
 
 To find out what directories are searched for modules, start `tclsh` and enter:
 
