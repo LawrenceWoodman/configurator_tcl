@@ -104,7 +104,7 @@ proc configurator::ProcessOptions {int options} {
 
 proc configurator::CreateMasterCmds {int masterCmds} {
   dict for {slaveCmd masterCmd} $masterCmds {
-    $int alias $slaveCmd $masterCmd
+    $int alias $slaveCmd {*}$masterCmd
   }
 }
 

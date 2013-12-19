@@ -205,7 +205,7 @@ they still update config appropriately} -setup {
   parseConfig -exposeCmds $exposeCmds $script
 } -result {title {The sum is: 5}}
 
-test parseConfig-14 {Ensure that master commands work properly} -setup {
+test parseConfig-14 {Ensure that master commands can be called} -setup {
   set script {
     title "The sum of 5 and 6 is [sum 5 6]"
   }
@@ -217,7 +217,20 @@ test parseConfig-14 {Ensure that master commands work properly} -setup {
   parseConfig -masterCmds $masterCmds $script
 } -result {title {The sum of 5 and 6 is 11}}
 
-test parseConfig-15 {Ensure that slave commands can interact with slave \
+test parseConfig-15 {Ensure that master commands work as command prefixes} \
+-setup {
+  set script {
+    title "The sum of 5 and 6 is [add6 5]"
+  }
+
+  set masterCmds {
+    add6 {tcl::mathop::+ 6}
+  }
+} -body {
+  parseConfig -masterCmds $masterCmds $script
+} -result {title {The sum of 5 and 6 is 11}}
+
+test parseConfig-16 {Ensure that slave commands can interact with slave \
 environment} -setup {
   set script {
     seta 7
@@ -232,7 +245,7 @@ environment} -setup {
   parseConfig -slaveCmds $slaveCmds $script
 } -result {title {a is set to: 7}}
 
-test parseConfig-16 {Ensure that namespace children are not removed when \
+test parseConfig-17 {Ensure that namespace children are not removed when \
 -slaveCmds is used} -setup {
   set script {
     title "this is a number: [::tcl::string::length "title"]"
@@ -245,7 +258,7 @@ test parseConfig-16 {Ensure that namespace children are not removed when \
   parseConfig -keys $keys -slaveCmds {} $script
 } -result {title {this is a number: 5}}
 
-test parseConfig-17 {Ensure that namespace children are not removed when \
+test parseConfig-18 {Ensure that namespace children are not removed when \
 -exposeCmds is used} -setup {
   set script {
     title "this is a number: [::tcl::string::length "title"]"

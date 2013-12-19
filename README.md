@@ -115,7 +115,7 @@ Parses the _script_ and outputs a dictionary representing the given configuratio
   <dt>-keys</dt>
     <dd>A dictionary of keys where each key is the command name to set a key within the configuration dictionary and the value is a list of the form: <code>{key numValues argsUsage}</code>.</dd>
   <dt>-masterCmds</dt>
-    <dd>A dictionary of slave interpreter commands mapped to master interpreter commands.  The keys are the slave interpreter command names and the values are the master interpreter command names.</dd>
+    <dd>A dictionary of slave interpreter commands mapped to master interpreter command prefixes.  The keys are the slave interpreter command names and the values are the master interpreter command prefixes.</dd>
   <dt>-slaveCmds</dt>
     <dd>A dictionary of slave interpreter commands mapped to master interpreter commands, as above, but when the commands are called in the master interpreter they have the interpreter path passed as the first argument.  The keys are the slave interpreter command names and the values are the master interpreter command names.  When this option is chosen the commands are hidden, not deleted, in the same manner as for <code>-exposeCmds</code>.</dd>
 </dl>
