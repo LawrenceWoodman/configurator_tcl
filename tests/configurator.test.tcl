@@ -271,4 +271,22 @@ test parseConfig-18 {Ensure that namespace children are not removed when \
   parseConfig -keys $keys -exposeCmds {} $script
 } -result {title {this is a number: 5}}
 
+test parseConfig-19 {Ensure that -returnKey sets supplied key with the \
+result of the last command run in script} -setup {
+  set script {
+    title "this is the title"
+    expr {5 + 6}
+  }
+
+  set keys {
+    title {title 1 "title title"}
+  }
+
+  set exposeCmds {
+    expr  expr
+  }
+} -body {
+  parseConfig -keys $keys -exposeCmds $exposeCmds -returnKey final $script
+} -result {title {this is the title} final 11}
+
 cleanupTests

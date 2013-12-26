@@ -113,9 +113,11 @@ Parses the _script_ and outputs a dictionary representing the given configuratio
   <dt>-exposeCmds</dt>
     <dd>A dictionary of hidden commands to expose that has the exposed command name as the key and hidden command name as the value.  When this option is chosen, instead of deleting the entire <code>::</code> namespace, the interpreter only hides the commands returned by <code>info commands</code>, so you will now be able to access for example <code>::string::length</code> as standard.</dd>
   <dt>-keys</dt>
-    <dd>A dictionary of keys where each key is the command name to set a key within the configuration dictionary and the value is a list of the form: <code>{key numValues argsUsage}</code>.</dd>
+    <dd>A dictionary of keys where each key is the command name to set a key within the configuration dictionary and the value is a list of the form: <code>{key numValues argsUsage}</code>.  If <code>-keys</code> isn't supplied, then any unrecognised commands will be taken to be a key in the configuration dictionary.</dd>
   <dt>-masterCmds</dt>
     <dd>A dictionary of slave interpreter commands mapped to master interpreter command prefixes.  The keys are the slave interpreter command names and the values are the master interpreter command prefixes.</dd>
+  <dt>-returnKey</dt>
+    <dd>Specifies a key in the configuration dictionary that will be set with the result of the last command run in the script.</dd>
   <dt>-slaveCmds</dt>
     <dd>A dictionary of slave interpreter commands mapped to master interpreter commands, as above, but when the commands are called in the master interpreter they have the interpreter path passed as the first argument.  The keys are the slave interpreter command names and the values are the master interpreter command names.  When this option is chosen the commands are hidden, not deleted, in the same manner as for <code>-exposeCmds</code>.</dd>
 </dl>

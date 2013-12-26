@@ -21,7 +21,11 @@ proc configurator::parseConfig {args} {
     HideAllCmds $safeInterp
     ProcessOptions $safeInterp $options
 
-    $safeInterp eval $script
+    set returnVal [$safeInterp eval $script]
+    if {[dict exists $options -returnKey]} {
+      dict set config [dict get $options -returnKey] $returnVal
+    }
+
     return $config
   } returnResult returnOptions
 
@@ -56,7 +60,7 @@ proc configurator::SetConfig {key numValues argsUsage configVariable \
 }
 
 proc configurator::HandleArgs {_args} {
-  set validOptions {-exposeCmds -keys -masterCmds -slaveCmds}
+  set validOptions {-exposeCmds -keys -masterCmds -returnKey -slaveCmds}
 
   set options {}
   foreach {option value} $_args {
@@ -67,8 +71,8 @@ proc configurator::HandleArgs {_args} {
       dict set options $option $value
     } else {
       return -code error \
-          "bad option \"$option\": must be -exposeCmds, -keys, -masterCmds or\
--slaveCmds"
+          "bad option \"$option\": must be -exposeCmds, -keys, -masterCmds \
+-returnKey or -slaveCmds"
     }
   }
 
