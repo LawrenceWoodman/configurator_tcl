@@ -289,4 +289,20 @@ result of the last command run in script} -setup {
   parseConfig -keys $keys -exposeCmds $exposeCmds -returnKey final $script
 } -result {title {this is the title} final 11}
 
+
+test parseConfig-20 {Ensure that slave commands work as a command prefix with multiple parts} -setup {
+  set script {
+    setaplus3 7
+    title "a is set to: $a"
+  }
+
+  set slaveCmds {
+    setaplus3 {TestHelpers::setaplusx 3}
+  }
+
+} -body {
+  parseConfig -slaveCmds $slaveCmds $script
+} -result {title {a is set to: 10}}
+
+
 cleanupTests

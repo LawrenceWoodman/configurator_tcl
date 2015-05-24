@@ -1,6 +1,6 @@
 # A configuration parsing module
 #
-# Copyright (C) 2013 Lawrence Woodman <lwoodman@vlifesystems.com>
+# Copyright (C) 2013-2015 Lawrence Woodman <lwoodman@vlifesystems.com>
 #
 # Licensed under an MIT licence.  Please see LICENCE.md for details.
 #
@@ -134,7 +134,7 @@ proc configurator::CreateKeyCmds {int keys} {
 
 proc configurator::CreateSlaveCmds {int slaveCmds} {
   dict for {slaveCmd masterCmd} $slaveCmds {
-    $int alias $slaveCmd $masterCmd $int
+    $int alias $slaveCmd {*}$masterCmd $int
   }
 }
 

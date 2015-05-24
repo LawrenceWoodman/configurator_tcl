@@ -119,7 +119,7 @@ Parses the _script_ and outputs a dictionary representing the given configuratio
   <dt>-returnKey</dt>
     <dd>Specifies a key in the configuration dictionary that will be set with the result of the last command run in the script.</dd>
   <dt>-slaveCmds</dt>
-    <dd>A dictionary of slave interpreter commands mapped to master interpreter commands, as above, but when the commands are called in the master interpreter they have the interpreter path passed as the first argument.  The keys are the slave interpreter command names and the values are the master interpreter command names.  When this option is chosen the commands are hidden, not deleted, in the same manner as for <code>-exposeCmds</code>.</dd>
+    <dd>A dictionary of slave interpreter commands mapped to master interpreter command prefixes, as above, but when the commands are called in the master interpreter they have the interpreter path passed as the first argument.  The keys are the slave interpreter command names and the values are the master interpreter command names.  When this option is chosen the commands are hidden, not deleted, in the same manner as for <code>-exposeCmds</code>.</dd>
 </dl>
 
 Requirements
@@ -152,6 +152,6 @@ If you want to improve this module make a pull request to the [repo](https://git
 
 Licence
 -------
-Copyright (C) 2013, Lawrence Woodman <lwoodman@vlifesystems.com>
+Copyright (C) 2013-2015, Lawrence Woodman <lwoodman@vlifesystems.com>
 
 This software is licensed under an MIT Licence.  Please see the file, LICENCE.md, for details.
