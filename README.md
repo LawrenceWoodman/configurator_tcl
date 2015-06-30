@@ -68,7 +68,7 @@ To make the configuration scripts more flexible you can export commands that hav
     }
 
     # Outputs a dictionary:
-    #   titles {{Title with the number 5 in it} {Five is 4 characters long}
+    #   titles {{Title with the number 5 in it} {Five is 4 characters long}}
     puts [parseConfig -keys $keys -exposeCmds $exposeCmds $script]
 
 If you wanted to be able to access commands from the master interpreter you can use the `-masterCmds` option:
@@ -108,7 +108,7 @@ Exported Commands
 -----------------
 
 **configurator::parseConfig** _?-option value ...?_ _script_<br />
-Parses the _script_ and outputs a dictionary representing the given configuration.The _option_s consist of:
+Parses the _script_ and outputs a dictionary representing the given configuration.  The _option_s consist of:
 <dl>
   <dt>-exposeCmds</dt>
     <dd>A dictionary of hidden commands to expose that has the exposed command name as the key and hidden command name as the value.  When this option is chosen, instead of deleting the entire <code>::</code> namespace, the interpreter only hides the commands returned by <code>info commands</code>, so you will now be able to access for example <code>::string::length</code> as standard.</dd>
