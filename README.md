@@ -2,7 +2,7 @@ configurator
 ============
 A Tcl module to parse configuration scripts.
 
-This module provides a simple way to parse a configuration script and create a dictionary from it.
+This module provides a simple way to parse a configuration script and create a dictionary from it.  The script is parsed using a safe interpreter.
 
 Module Usage
 ------------
